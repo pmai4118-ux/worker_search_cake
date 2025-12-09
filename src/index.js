@@ -89,10 +89,12 @@ async function handleSearch(request, env, corsHeaders) {
     });
 
   } catch (error) {
+    // Log detailed error server-side
+    console.error('Search error:', error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        details: error.toString()
+        error: error.message || 'Internal server error'
       }),
       { 
         status: 500,
@@ -104,10 +106,10 @@ async function handleSearch(request, env, corsHeaders) {
 
 /**
  * Call Google Gemini 1.5 Flash API
+ * Note: Google's Gemini API requires the API key as a query parameter.
+ * This is the official method documented by Google.
  */
 async function callGeminiAPI(prompt, apiKey) {
-  const url = `${GEMINI_API_ENDPOINT}?key=${apiKey}`;
-  
   const requestBody = {
     contents: [
       {
@@ -144,7 +146,7 @@ async function callGeminiAPI(prompt, apiKey) {
     ]
   };
 
-  const response = await fetch(url, {
+  const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -154,7 +156,10 @@ async function callGeminiAPI(prompt, apiKey) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    // Log detailed error server-side only
+    console.error('Gemini API error:', response.status, errorText);
+    // Return sanitized error message to client
+    throw new Error(`Failed to generate response (status ${response.status})`);
   }
 
   const data = await response.json();
